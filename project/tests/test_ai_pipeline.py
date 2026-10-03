@@ -82,3 +82,11 @@ def test_pipeline_boundary_empty_string():
     res = pipeline.process("")
     assert res["tokens"] == []
     assert res["word_count"] == 0
+
+
+def test_pipeline_unicode_handling():
+    from project.src.ai_pipeline import TextPipeline
+    pipeline = TextPipeline()
+    res = pipeline.process("Hello 🌍 世界! Café naïve.")
+    assert "hello" in res["tokens"]
+    assert res["word_count"] > 0
