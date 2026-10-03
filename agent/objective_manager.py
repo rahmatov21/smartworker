@@ -231,6 +231,33 @@ class ObjectiveManager:
             except Exception:
                 pass
 
+        # Collect recently completed and failed objectives to prevent repeating
+        completed_titles = set()
+        if self.objectives_history_file.exists():
+            try:
+                with open(self.objectives_history_file, "r", encoding="utf-8") as f:
+                    history = json.load(f)
+                for item in history.get("completed", []):
+                    completed_titles.add(item.get("title", ""))
+            except Exception:
+                pass
+
+        experiments_file = self.state_dir / "experiments.json"
+        if experiments_file.exists():
+            try:
+                with open(experiments_file, "r", encoding="utf-8") as ef:
+                    exps = json.load(ef)
+                for e in exps:
+                    if e.get("passed"):
+                        completed_titles.add(e.get("objective", ""))
+            except Exception:
+                pass
+
+        # If all candidates in catalog are completed, add fresh dynamic candidates
+        uncompleted_in_catalog = [c for c in candidates_catalog if c["title"] not in completed_titles]
+        if not uncompleted_in_catalog:
+            candidates_catalog.extend(self._generate_dynamic_candidates(completed_titles))
+
         objectives = []
 
         # Check for user-directed commands (from Telegram /build or CLI)
@@ -262,11 +289,15 @@ class ObjectiveManager:
                 self.logger.warning(f"Failed to load user directives: {e}")
 
         for idx, item in enumerate(candidates_catalog):
-            # Check redundancy against recent failures
             penalty = 0.0
+            # Redundancy penalty for completed objectives: strongly demote already solved tasks
+            if item["title"] in completed_titles:
+                penalty += 15.0
+
+            # Redundancy penalty against recent failed topics
             for failed_topic in recent_failed_topics:
                 if failed_topic and (item["category"] in failed_topic or item["title"] in failed_topic):
-                    penalty = 4.0
+                    penalty += 4.0
                     break
 
             # Apply stagnation breaker and user-steered boosts
@@ -305,6 +336,49 @@ class ObjectiveManager:
         # Sort descending by priority score
         objectives.sort(key=lambda o: o.priority_score, reverse=True)
         return objectives
+
+    def _generate_dynamic_candidates(self, completed_titles: set) -> List[Dict[str, Any]]:
+        """Generates dynamic objectives to keep autonomous improvement expanding."""
+        timestamp = int(time.time())
+        pool = [
+            {
+                "title": f"Implement batch text processing and vector similarity #{timestamp % 1000}",
+                "category": "performance_optimization",
+                "hypothesis": "Batch processing avoids function invocation overhead and supports multi-document processing.",
+                "target_files": ["project/src/ai_pipeline.py", "project/tests/test_ai_pipeline.py"],
+                "impact": 8.5,
+                "feasibility": 9.0,
+                "safety": 9.0,
+                "testability": 9.5,
+                "alignment": 9.0,
+                "requires_restart": False,
+            },
+            {
+                "title": f"Add comprehensive boundary tests and Unicode normalization #{timestamp % 1000}",
+                "category": "testing_and_quality",
+                "hypothesis": "Handling unicode normalization prevents non-standard character crashes in tokenization.",
+                "target_files": ["project/tests/test_ai_pipeline.py"],
+                "impact": 7.5,
+                "feasibility": 9.5,
+                "safety": 10.0,
+                "testability": 10.0,
+                "alignment": 8.5,
+                "requires_restart": False,
+            },
+            {
+                "title": f"Add atomic write locks and corrupted state recovery in agent memory #{timestamp % 1000}",
+                "category": "agent_self_improvement",
+                "hypothesis": "Transactional updates guarantee zero state corruption during sudden restarts.",
+                "target_files": ["agent/memory.py"],
+                "impact": 8.0,
+                "feasibility": 8.5,
+                "safety": 8.5,
+                "testability": 9.0,
+                "alignment": 9.0,
+                "requires_restart": True,
+            },
+        ]
+        return [c for c in pool if c["title"] not in completed_titles]
 
 
     def select_next_objective(self, mission: str = "Continuously improve this system.") -> Objective:

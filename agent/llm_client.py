@@ -37,8 +37,14 @@ class OpenRouterClient:
         mock_mode: Optional[bool] = None,
         logger: Optional[logging.Logger] = None,
     ):
-        self.model = model
-        self.base_url = base_url.rstrip("/")
+        try:
+            from system.env_loader import load_dotenv
+            load_dotenv()
+        except Exception:
+            pass
+
+        self.model = os.environ.get("OPENROUTER_MODEL", model)
+        self.base_url = os.environ.get("OPENROUTER_BASE_URL", base_url).rstrip("/")
         self.cooldown_seconds = cooldown_seconds
         self.logger = logger or logging.getLogger("OpenRouterClient")
 

@@ -21,6 +21,12 @@ if str(_root) not in sys.path:
     sys.path.insert(0, str(_root))
 
 try:
+    from system.env_loader import load_dotenv
+    load_dotenv(_root)
+except Exception:
+    pass
+
+try:
     from .evaluator import Evaluator
     from .llm_client import OpenRouterClient
     from .memory import AgentMemory
