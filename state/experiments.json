@@ -424,5 +424,26 @@
       }
     },
     "lesson": "Successfully improved system: Add LRU caching and edge-case validation to project text pipeline. All 5 tests passed. Zero regressions."
+  },
+  {
+    "id": "test-obj-fail-01",
+    "timestamp": 1791049739.0643864,
+    "date": "2026-10-03 22:48:59",
+    "objective": "Test Objective Destined to Fail",
+    "hypothesis": "Testing failure handling",
+    "changes": [
+      "project/tests/test_ai_pipeline.py"
+    ],
+    "passed": false,
+    "status": "ROLLED_BACK",
+    "commit": "6d9c6dfaa71547453183c6a9188ad8b0956cc853",
+    "metrics_before": {
+      "tests_passed": 5,
+      "test_duration": 7.31
+    },
+    "metrics_after": {
+      "tests_passed": 0
+    },
+    "lesson": "Failed to implement 'Test Objective Destined to Fail' safely. Failure reason: Unit tests crashed. Rollback restored codebase to clean checkpoint."
   }
 ]
