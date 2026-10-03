@@ -13,11 +13,19 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, List, Optional, Any
 
-from .evaluator import Evaluator, EvaluationReport
-from .llm_client import OpenRouterClient
-from .memory import AgentMemory
-from .objective_manager import Objective
-from .tools import AgentTools
+try:
+    from .evaluator import Evaluator, EvaluationReport
+    from .llm_client import OpenRouterClient
+    from .memory import AgentMemory
+    from .objective_manager import Objective
+    from .tools import AgentTools
+except (ImportError, ValueError):
+    from agent.evaluator import Evaluator, EvaluationReport
+    from agent.llm_client import OpenRouterClient
+    from agent.memory import AgentMemory
+    from agent.objective_manager import Objective
+    from agent.tools import AgentTools
+
 
 
 @dataclass

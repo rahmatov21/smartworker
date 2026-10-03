@@ -12,9 +12,15 @@ from dataclasses import dataclass, asdict
 from pathlib import Path
 from typing import Dict, List, Optional, Any
 
-from .llm_client import OpenRouterClient
-from .memory import AgentMemory
-from .tools import AgentTools
+try:
+    from .llm_client import OpenRouterClient
+    from .memory import AgentMemory
+    from .tools import AgentTools
+except (ImportError, ValueError):
+    from agent.llm_client import OpenRouterClient
+    from agent.memory import AgentMemory
+    from agent.tools import AgentTools
+
 
 
 @dataclass

@@ -15,12 +15,26 @@ from pathlib import Path
 from typing import Optional, Dict, Any
 import yaml
 
-from .evaluator import Evaluator
-from .llm_client import OpenRouterClient
-from .memory import AgentMemory
-from .objective_manager import ObjectiveManager
-from .planner import Planner
-from .tools import AgentTools
+# Ensure workspace root is in sys.path when executed directly as script
+_root = Path(__file__).resolve().parent.parent
+if str(_root) not in sys.path:
+    sys.path.insert(0, str(_root))
+
+try:
+    from .evaluator import Evaluator
+    from .llm_client import OpenRouterClient
+    from .memory import AgentMemory
+    from .objective_manager import ObjectiveManager
+    from .planner import Planner
+    from .tools import AgentTools
+except (ImportError, ValueError):
+    from agent.evaluator import Evaluator
+    from agent.llm_client import OpenRouterClient
+    from agent.memory import AgentMemory
+    from agent.objective_manager import ObjectiveManager
+    from agent.planner import Planner
+    from agent.tools import AgentTools
+
 
 
 class AutonomousAgent:

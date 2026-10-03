@@ -14,7 +14,11 @@ from pathlib import Path
 from typing import Dict, List, Optional, Any
 
 from system.supervisor.protection import verify_integrity, compute_supervisor_hashes
-from .tools import AgentTools
+try:
+    from .tools import AgentTools
+except (ImportError, ValueError):
+    from agent.tools import AgentTools
+
 
 
 @dataclass
