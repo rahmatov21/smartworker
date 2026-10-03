@@ -571,5 +571,19 @@
         "agent/memory.py"
       ]
     }
+  },
+  {
+    "id": "lesson-0041",
+    "timestamp": 1791057420.2419882,
+    "date": "2026-10-04 00:57:00",
+    "topic": "Enhance error recovery and cooldown decay in OpenRouter client",
+    "lesson": "Successfully improved system: Enhance error recovery and cooldown decay in OpenRouter client. All 8 tests passed. Zero regressions.",
+    "outcome": "SUCCESS",
+    "context": {
+      "experiment_id": "obj-1791057413-04",
+      "changes": [
+        "agent/llm_client.py"
+      ]
+    }
   }
 ]

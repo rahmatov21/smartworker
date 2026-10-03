@@ -999,5 +999,34 @@
       }
     },
     "lesson": "Successfully improved system: Implement robust JSON schema validation in agent memory system. All 8 tests passed. Zero regressions."
+  },
+  {
+    "id": "obj-1791057413-04",
+    "timestamp": 1791057420.2377775,
+    "date": "2026-10-04 00:57:00",
+    "objective": "Enhance error recovery and cooldown decay in OpenRouter client",
+    "hypothesis": "Gradual cooldown decay restores temporarily throttled keys faster, reducing latency.",
+    "changes": [
+      "agent/llm_client.py"
+    ],
+    "passed": true,
+    "status": "ACCEPTED",
+    "commit": "bd5cbdfdbae3a42953ad4079e6abb9f21c60f35a",
+    "metrics_before": {
+      "tests_passed": 8,
+      "test_duration": 3.07
+    },
+    "metrics_after": {
+      "tests_passed": 8,
+      "benchmarks": {
+        "benchmark_pipeline": {
+          "avg_latency_ms": 1.339,
+          "ops_per_second": 746.8,
+          "corpus_size": 100,
+          "iterations": 50
+        }
+      }
+    },
+    "lesson": "Successfully improved system: Enhance error recovery and cooldown decay in OpenRouter client. All 8 tests passed. Zero regressions."
   }
 ]
