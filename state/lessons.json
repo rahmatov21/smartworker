@@ -585,5 +585,19 @@
         "agent/llm_client.py"
       ]
     }
+  },
+  {
+    "id": "lesson-0042",
+    "timestamp": 1791057424.697952,
+    "date": "2026-10-04 00:57:04",
+    "topic": "Test Objective Destined to Fail",
+    "lesson": "Failed to implement 'Test Objective Destined to Fail' safely. Failure reason: Unit tests crashed. Rollback restored codebase to clean checkpoint.",
+    "outcome": "FAILURE",
+    "context": {
+      "experiment_id": "test-obj-fail-01",
+      "changes": [
+        "project/tests/test_ai_pipeline.py"
+      ]
+    }
   }
 ]
