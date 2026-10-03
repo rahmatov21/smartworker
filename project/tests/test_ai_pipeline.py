@@ -98,3 +98,11 @@ def test_pipeline_batch_processing():
     batch = pipeline.batch_process(["First sentence.", "Second sentence."])
     assert len(batch) == 2
     assert batch[0]["word_count"] == 2
+
+
+def test_pipeline_levenshtein_distance():
+    from project.src.ai_pipeline import TextPipeline
+    pipeline = TextPipeline()
+    if hasattr(pipeline, "levenshtein_distance"):
+        assert pipeline.levenshtein_distance("kitten", "sitting") == 3
+        assert pipeline.levenshtein_distance("same", "same") == 0
