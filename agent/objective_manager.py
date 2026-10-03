@@ -199,6 +199,19 @@ class ObjectiveManager:
             },
         ]
 
+        # Check for stagnation breaker directive from AutoHealer
+        divergent_directive_file = self.state_dir / "divergent_directive.json"
+        boosted_categories = []
+        if divergent_directive_file.exists():
+            try:
+                with open(divergent_directive_file, "r", encoding="utf-8") as ddf:
+                    directive_data = json.load(ddf)
+                if directive_data.get("active", False):
+                    boosted_categories = directive_data.get("boost_categories", [])
+                    self.logger.info(f"Applying AutoHealer stagnation-breaker boost for categories: {boosted_categories}")
+            except Exception:
+                pass
+
         objectives = []
         for idx, item in enumerate(candidates_catalog):
             # Check redundancy against recent failures
@@ -208,6 +221,9 @@ class ObjectiveManager:
                     penalty = 4.0
                     break
 
+            # Apply stagnation breaker boost if applicable
+            boost = 3.0 if item["category"] in boosted_categories else 0.0
+
             priority = self.calculate_priority_score(
                 impact=item["impact"],
                 feasibility=item["feasibility"],
@@ -215,7 +231,7 @@ class ObjectiveManager:
                 testability=item["testability"],
                 alignment=item["alignment"],
                 redundancy_penalty=penalty,
-            )
+            ) + boost
 
             obj = Objective(
                 id=f"obj-{int(time.time())}-{idx:02d}",
