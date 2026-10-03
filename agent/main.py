@@ -24,8 +24,14 @@ from .tools import AgentTools
 
 
 class AutonomousAgent:
-    def __init__(self, workspace_root: Optional[Path] = None, config_path: Optional[Path] = None):
+    def __init__(
+        self,
+        workspace_root: Optional[Path] = None,
+        config_path: Optional[Path] = None,
+        unsecured: bool = False,
+    ):
         self.workspace_root = (workspace_root or Path(__file__).resolve().parent.parent).resolve()
+        self.unsecured = unsecured or os.environ.get("UNSECURED_MODE", "0") == "1"
         self.agent_dir = self.workspace_root / "agent"
         self.state_dir = self.workspace_root / "state"
         self.logs_dir = self.workspace_root / "logs"
@@ -38,14 +44,20 @@ class AutonomousAgent:
 
         self._setup_logging()
 
+        if self.unsecured:
+            self.logger.warning(
+                "AGENT INITIALIZED IN UNSECURED / UNRESTRICTED MODE! "
+                "Rollbacks and Layer A protection constraints are disabled."
+            )
+
         # Initialize subcomponents
-        self.tools = AgentTools(self.workspace_root, logger=self.logger)
+        self.tools = AgentTools(self.workspace_root, unsecured=self.unsecured, logger=self.logger)
         self.llm = OpenRouterClient(
             model=self.config.get("llm", {}).get("model", "qwen/qwen-2.5-72b-instruct"),
             logger=self.logger,
         )
         self.memory = AgentMemory(self.workspace_root, logger=self.logger)
-        self.evaluator = Evaluator(self.workspace_root, tools=self.tools, logger=self.logger)
+        self.evaluator = Evaluator(self.workspace_root, tools=self.tools, unsecured=self.unsecured, logger=self.logger)
         self.obj_manager = ObjectiveManager(
             workspace_root=self.workspace_root,
             llm_client=self.llm,
@@ -60,6 +72,7 @@ class AutonomousAgent:
             memory=self.memory,
             llm=self.llm,
             max_fix_attempts=self.config.get("agent", {}).get("max_fix_attempts", 2),
+            unsecured=self.unsecured,
             logger=self.logger,
         )
 

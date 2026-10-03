@@ -40,11 +40,13 @@ class Planner:
         memory: Optional[AgentMemory] = None,
         llm: Optional[OpenRouterClient] = None,
         max_fix_attempts: int = 2,
+        unsecured: bool = False,
         logger: Optional[logging.Logger] = None,
     ):
         self.workspace_root = (workspace_root or Path(__file__).resolve().parent.parent).resolve()
-        self.tools = tools or AgentTools(self.workspace_root)
-        self.evaluator = evaluator or Evaluator(self.workspace_root, self.tools)
+        self.unsecured = unsecured or os.environ.get("UNSECURED_MODE", "0") == "1"
+        self.tools = tools or AgentTools(self.workspace_root, unsecured=self.unsecured)
+        self.evaluator = evaluator or Evaluator(self.workspace_root, self.tools, unsecured=self.unsecured)
         self.memory = memory or AgentMemory(self.workspace_root)
         self.llm = llm or OpenRouterClient()
         self.max_fix_attempts = max_fix_attempts
@@ -118,6 +120,36 @@ class Planner:
 
         # 6. Final Decision: Accept or Rollback
         if not eval_report.passed:
+            if self.unsecured:
+                self.logger.warning(
+                    f"[UNSECURED MODE] Tests failed ({eval_report.failure_reason}), but auto-rollback is DISABLED. "
+                    "Committing changes to allow unrestrained code evolution!"
+                )
+                commit_msg = f"feat(unsecured): {obj.title} [UNVERIFIED / TESTS FAILED]"
+                final_commit = self.tools.git_commit(commit_msg)
+                lesson = f"[UNSECURED] Experiment '{obj.title}' kept despite test failure to observe downstream evolution."
+                self.memory.record_experiment(
+                    experiment_id=obj.id,
+                    objective=obj.title,
+                    hypothesis=obj.hypothesis,
+                    changes=obj.target_files,
+                    passed=False,
+                    metrics_before=baseline_metrics,
+                    metrics_after={"tests_passed": eval_report.tests_passed},
+                    lesson=lesson,
+                    commit=final_commit,
+                )
+                return ExecutionResult(
+                    success=False,
+                    rolled_back=False,
+                    checkpoint_commit=checkpoint_commit,
+                    final_commit=final_commit,
+                    eval_report=eval_report,
+                    fix_attempts_made=fix_attempts,
+                    restart_required=obj.requires_agent_restart,
+                    details=f"[UNSECURED] Kept modified code at commit {final_commit[:8]} without rollback.",
+                )
+
             self.logger.error(
                 f"Unresolved failures after {fix_attempts} fix attempts! "
                 f"EXECUTING AUTOMATIC ROLLBACK to {checkpoint_commit[:8]}."

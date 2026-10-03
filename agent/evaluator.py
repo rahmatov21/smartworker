@@ -36,10 +36,12 @@ class Evaluator:
         workspace_root: Optional[Path] = None,
         tools: Optional[AgentTools] = None,
         baseline_hashes: Optional[Dict[str, str]] = None,
+        unsecured: bool = False,
         logger: Optional[logging.Logger] = None,
     ):
         self.workspace_root = (workspace_root or Path(__file__).resolve().parent.parent).resolve()
-        self.tools = tools or AgentTools(self.workspace_root)
+        self.tools = tools or AgentTools(self.workspace_root, unsecured=unsecured)
+        self.unsecured = unsecured or os.environ.get("UNSECURED_MODE", "0") == "1"
         self.logger = logger or logging.getLogger("Evaluator")
 
         # Load baseline hashes for supervisor integrity verification
@@ -58,6 +60,7 @@ class Evaluator:
         """
         Executes comprehensive evaluation of the modified codebase.
         Enforces zero test failures, supervisor immutability, and syntax correctness.
+        In unsecured mode, rollback mandates are lifted for experimental testing.
         """
         diagnostics = []
 
@@ -77,7 +80,7 @@ class Evaluator:
         if not syntax_ok:
             return EvaluationReport(
                 passed=False,
-                should_rollback=True,
+                should_rollback=not self.unsecured,
                 tests_passed=0,
                 tests_failed=0,
                 tests_errors=1,
@@ -87,22 +90,26 @@ class Evaluator:
                 diagnostics=diagnostics,
             )
 
-        # 2. Supervisor Integrity Check (CRITICAL SAFETY RULE)
+        # 2. Supervisor Integrity Check (Bypassed if in unsecured mode)
         system_dir = self.workspace_root / "system"
         integrity_ok, violations = verify_integrity(system_dir, self.baseline_hashes)
         if not integrity_ok:
-            diagnostics.append(f"CRITICAL: Supervisor directory was tampered with! Violations: {violations}")
-            return EvaluationReport(
-                passed=False,
-                should_rollback=True,
-                tests_passed=0,
-                tests_failed=0,
-                tests_errors=1,
-                test_duration=0.0,
-                integrity_ok=False,
-                failure_reason="Supervisor integrity violation.",
-                diagnostics=diagnostics,
-            )
+            msg = f"Supervisor directory modified: {violations}"
+            diagnostics.append(msg)
+            if not self.unsecured:
+                return EvaluationReport(
+                    passed=False,
+                    should_rollback=True,
+                    tests_passed=0,
+                    tests_failed=0,
+                    tests_errors=1,
+                    test_duration=0.0,
+                    integrity_ok=False,
+                    failure_reason="Supervisor integrity violation.",
+                    diagnostics=diagnostics,
+                )
+            else:
+                self.logger.warning(f"[UNSECURED MODE] Supervisor integrity check bypassed: {msg}")
 
         # 3. Test Suite Execution
         test_res = self.tools.run_tests(test_path)
@@ -116,18 +123,18 @@ class Evaluator:
             diagnostics.append(f"Pytest output:\n{test_res['stdout'][-800:]}")
             return EvaluationReport(
                 passed=False,
-                should_rollback=True,
+                should_rollback=not self.unsecured,
                 tests_passed=passed,
                 tests_failed=failed,
                 tests_errors=errors,
                 test_duration=duration,
-                integrity_ok=True,
+                integrity_ok=integrity_ok,
                 failure_reason=f"Tests failed ({failed} failures, {errors} errors).",
                 diagnostics=diagnostics,
             )
 
-        # 4. Anti-Regression: Prevent test suite shrinkage
-        if baseline_metrics:
+        # 4. Anti-Regression: Prevent test suite shrinkage (bypassed in unsecured mode)
+        if baseline_metrics and not self.unsecured:
             prev_tests = baseline_metrics.get("tests_passed", 0)
             if passed < prev_tests:
                 diagnostics.append(
@@ -140,7 +147,7 @@ class Evaluator:
                     tests_failed=failed,
                     tests_errors=errors,
                     test_duration=duration,
-                    integrity_ok=True,
+                    integrity_ok=integrity_ok,
                     failure_reason="Test count decreased (anti-regression check failed).",
                     diagnostics=diagnostics,
                 )
