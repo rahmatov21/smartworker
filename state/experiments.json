@@ -1,1 +1,23 @@
-[]
+[
+  {
+    "id": "test-obj-fail-01",
+    "timestamp": 1791026472.8513591,
+    "date": "2026-10-03 16:21:12",
+    "objective": "Test Objective Destined to Fail",
+    "hypothesis": "Testing failure handling",
+    "changes": [
+      "project/tests/test_ai_pipeline.py"
+    ],
+    "passed": false,
+    "status": "ROLLED_BACK",
+    "commit": "7299073c5122d4788ed588719d04d922cb88d3a7",
+    "metrics_before": {
+      "tests_passed": 5,
+      "test_duration": 4.98
+    },
+    "metrics_after": {
+      "tests_passed": 0
+    },
+    "lesson": "Failed to implement 'Test Objective Destined to Fail' safely. Failure reason: Unit tests crashed. Rollback restored codebase to clean checkpoint."
+  }
+]
