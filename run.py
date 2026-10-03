@@ -97,6 +97,22 @@ def show_status(root: Path):
         except Exception:
             pass
 
+    # Telegram Bot Status
+    token = os.environ.get("TELEGRAM_BOT_TOKEN", "").strip()
+    if token:
+        try:
+            from system.telegram_bot import TelegramBot
+            bot = TelegramBot(workspace_root=root)
+            is_valid, bot_name = bot.verify_token()
+            if is_valid:
+                print(f"\nTelegram Bot: CONNECTED (@{bot_name})")
+            else:
+                print(f"\nTelegram Bot: TOKEN ERROR ({bot_name})")
+        except Exception as e:
+            print(f"\nTelegram Bot: ERROR ({e})")
+    else:
+        print("\nTelegram Bot: NOT CONFIGURED (Optional: set TELEGRAM_BOT_TOKEN in .env)")
+
     # Kill switch
     kill_file = root / "system" / "kill_switch.flag"
     if kill_file.exists():
@@ -160,6 +176,11 @@ def main():
         action="store_true",
         help="Run standalone Telegram Bot monitoring service.",
     )
+    parser.add_argument(
+        "--test-telegram",
+        action="store_true",
+        help="Validate Telegram Bot token and test connectivity.",
+    )
 
 
     args = parser.parse_args()
@@ -176,6 +197,39 @@ def main():
   Use only in an isolated sandbox or dedicated testing environment.
 ================================================================================
 """)
+
+    if args.test_telegram:
+        print("[*] Testing Telegram Bot configuration and connectivity...")
+        token = os.environ.get("TELEGRAM_BOT_TOKEN", "").strip()
+        if not token:
+            print("[-] TELEGRAM_BOT_TOKEN is not set in .env!")
+            print("    Please add TELEGRAM_BOT_TOKEN=<your_token> in .env and try again.")
+            return
+
+        try:
+            from system.telegram_bot import TelegramBot
+            bot = TelegramBot(workspace_root=root)
+            is_valid, bot_name = bot.verify_token()
+            if is_valid:
+                print(f"[+] SUCCESS: Connected to Telegram as @{bot_name}!")
+                chat_id = os.environ.get("TELEGRAM_CHAT_ID", "").strip()
+                if chat_id:
+                    print(f"[*] Sending test message to Chat ID {chat_id}...")
+                    sent = bot.send_message(
+                        chat_id,
+                        "🤖 *Self-Improver Test Message*\nYour Telegram Bot is properly configured and working!",
+                    )
+                    if sent:
+                        print("[+] Test message delivered successfully!")
+                    else:
+                        print("[-] Could not deliver test message. Verify TELEGRAM_CHAT_ID.")
+                else:
+                    print("[i] TELEGRAM_CHAT_ID is not set. Bot will auto-detect your chat ID when you message it.")
+            else:
+                print(f"[-] Token verification failed: {bot_name}")
+        except Exception as e:
+            print(f"[-] Error connecting to Telegram: {e}")
+        return
 
     if args.telegram:
         print("[*] Starting Telegram Bot listener service...")
