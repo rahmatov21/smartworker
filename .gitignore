@@ -1,0 +1,13 @@
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.coverage
+htmlcov/
+*.log
+logs/*.log
+state/heartbeat.json
+system/kill_switch.flag
+.env
+.venv/
+env/

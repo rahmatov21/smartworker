@@ -1,0 +1,33 @@
+# Protected Supervisor Configuration (Layer A)
+# The agent is forbidden from modifying this configuration.
+
+supervisor:
+  check_interval_seconds: 2
+  heartbeat_timeout_seconds: 45
+  max_runtime_per_objective_seconds: 300
+  max_consecutive_failures: 3
+  max_memory_mb: 1024
+  max_cpu_percent: 95.0
+  kill_switch_file: "system/kill_switch.flag"
+  agent_entrypoint: "agent/main.py"
+  state_dir: "state"
+  logs_dir: "logs"
+  backups_dir: "backups"
+  auto_rollback_on_failure: true
+  baseline_hash_file: "system/supervisor/baseline_hashes.json"
+
+health_check:
+  required_files:
+    - "agent/main.py"
+    - "agent/planner.py"
+    - "agent/objective_manager.py"
+    - "agent/memory.py"
+    - "agent/evaluator.py"
+    - "agent/tools.py"
+    - "agent/llm_client.py"
+    - "agent/agent_config.yaml"
+  required_packages:
+    - "psutil"
+    - "requests"
+    - "yaml"
+    - "pytest"

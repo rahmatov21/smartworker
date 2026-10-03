@@ -1,0 +1,19 @@
+# Autonomous Agent Configuration (Layer B)
+agent:
+  mission: "Continuously improve this AI system."
+  max_fix_attempts: 2
+  heartbeat_interval_seconds: 5
+  cooldown_between_objectives_seconds: 3
+  self_modification_allowed: true
+
+llm:
+  model: "qwen/qwen-2.5-72b-instruct"
+  temperature: 0.2
+  max_tokens: 4096
+  cooldown_seconds: 300.0
+
+evaluator:
+  enforce_anti_regression: true
+  verify_supervisor_integrity: true
+  test_path: "project/tests"
+  benchmark_path: "project/benchmarks"
