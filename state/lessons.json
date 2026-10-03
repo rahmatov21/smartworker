@@ -529,5 +529,19 @@
         "project/benchmarks/benchmark_pipeline.py"
       ]
     }
+  },
+  {
+    "id": "lesson-0038",
+    "timestamp": 1791057264.657175,
+    "date": "2026-10-04 00:54:24",
+    "topic": "Test Objective Destined to Fail",
+    "lesson": "Failed to implement 'Test Objective Destined to Fail' safely. Failure reason: Unit tests crashed. Rollback restored codebase to clean checkpoint.",
+    "outcome": "FAILURE",
+    "context": {
+      "experiment_id": "test-obj-fail-01",
+      "changes": [
+        "project/tests/test_ai_pipeline.py"
+      ]
+    }
   }
 ]

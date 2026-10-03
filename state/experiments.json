@@ -925,5 +925,26 @@
       "tests_passed": 7
     },
     "lesson": "Failed to implement 'Optimize vector similarity search in project pipeline with vectorization' safely. Failure reason: Tests failed (1 failures, 0 errors).. Rollback restored codebase to clean checkpoint."
+  },
+  {
+    "id": "test-obj-fail-01",
+    "timestamp": 1791057264.6533453,
+    "date": "2026-10-04 00:54:24",
+    "objective": "Test Objective Destined to Fail",
+    "hypothesis": "Testing failure handling",
+    "changes": [
+      "project/tests/test_ai_pipeline.py"
+    ],
+    "passed": false,
+    "status": "ROLLED_BACK",
+    "commit": "f43d6ef693ed3d5038bf40132078cebf39c0d337",
+    "metrics_before": {
+      "tests_passed": 7,
+      "test_duration": 3.48
+    },
+    "metrics_after": {
+      "tests_passed": 0
+    },
+    "lesson": "Failed to implement 'Test Objective Destined to Fail' safely. Failure reason: Unit tests crashed. Rollback restored codebase to clean checkpoint."
   }
 ]
