@@ -17,12 +17,17 @@ class ProtectionError(PermissionError):
 
 
 def compute_file_hash(filepath: Path) -> str:
-    """Computes SHA-256 hash of a file."""
+    """Computes SHA-256 hash of a file with newline normalization (cross-platform LF)."""
     hasher = hashlib.sha256()
-    with open(filepath, "rb") as f:
-        while chunk := f.read(65536):
-            hasher.update(chunk)
-    return hasher.hexdigest()
+    try:
+        with open(filepath, "rb") as f:
+            content = f.read()
+        # Normalize CRLF to LF so hashes match on both Linux and Windows
+        normalized = content.replace(b"\r\n", b"\n")
+        hasher.update(normalized)
+        return hasher.hexdigest()
+    except Exception:
+        return ""
 
 
 def compute_supervisor_hashes(system_dir: Path) -> Dict[str, str]:
