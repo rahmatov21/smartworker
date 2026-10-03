@@ -90,3 +90,11 @@ def test_pipeline_unicode_handling():
     res = pipeline.process("Hello 🌍 世界! Café naïve.")
     assert "hello" in res["tokens"]
     assert res["word_count"] > 0
+
+
+def test_pipeline_batch_processing():
+    from project.src.ai_pipeline import TextPipeline
+    pipeline = TextPipeline()
+    batch = pipeline.batch_process(["First sentence.", "Second sentence."])
+    assert len(batch) == 2
+    assert batch[0]["word_count"] == 2
