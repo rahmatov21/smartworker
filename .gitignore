@@ -10,4 +10,6 @@ state/heartbeat.json
 system/kill_switch.flag
 .env
 .venv/
+venv/
 env/
+
