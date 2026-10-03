@@ -1,3 +1,4 @@
+import functools
 """
 Unit tests for AI Text Processing & Retrieval Pipeline.
 """
