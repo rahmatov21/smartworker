@@ -74,8 +74,9 @@ def test_e2e_failure_injection_triggers_clean_rollback():
         restored_content = tools.read_file(test_file)
         assert bad_code not in restored_content
     finally:
-        # Ensure clean state
-        tools.git_rollback(checkpoint_commit)
+        # Ensure clean state for the test file
+        tools.write_file(test_file, original_content)
+
 
 
 def test_e2e_kill_switch_halts_agent():

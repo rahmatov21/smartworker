@@ -19,7 +19,9 @@ if str(root_dir) not in sys.path:
 from system.supervisor.supervisor import Supervisor
 from system.supervisor.health_check import HealthChecker
 from system.supervisor.protection import compute_supervisor_hashes
+from system.supervisor.auto_healer import AutoHealer
 from agent.main import AutonomousAgent
+
 
 
 def print_banner():
@@ -71,6 +73,27 @@ def show_status(root: Path):
             lessons = json.load(f)
         print(f"Persistent Lessons Learned: {len(lessons)}")
 
+    # Auto-Healer Stagnation & Stuck State
+    healer = AutoHealer(workspace_root=root)
+    heal_report = healer.diagnose()
+    if heal_report.is_healthy:
+        print("\nAuto-Healer Status: HEALTHY (No stalls, freezes, or plateaus)")
+    else:
+        print(f"\nAuto-Healer Status: ATTENTION REQUIRED ({len(heal_report.stuck_issues)} detected)")
+        for iss in heal_report.stuck_issues:
+            print(f"  [!] {iss}")
+
+    # Divergent directive
+    dd_file = root / "state" / "divergent_directive.json"
+    if dd_file.exists():
+        try:
+            with open(dd_file, "r", encoding="utf-8") as ddf:
+                dd_data = json.load(ddf)
+            if dd_data.get("active", False):
+                print(f"Active Stagnation-Breaker Directive: ACTIVE ({dd_data.get('reason', 'N/A')})")
+        except Exception:
+            pass
+
     # Kill switch
     kill_file = root / "system" / "kill_switch.flag"
     if kill_file.exists():
@@ -115,10 +138,21 @@ def main():
         help="Clear the kill switch and allow the system to resume",
     )
     parser.add_argument(
+        "--heal-now",
+        action="store_true",
+        help="Inspect system for frozen processes, stalled tasks, or metric plateaus and apply immediate fixes",
+    )
+    parser.add_argument(
+        "--healer",
+        action="store_true",
+        help="Run the AutoHealer continuous monitoring daemon loop",
+    )
+    parser.add_argument(
         "--unsecured",
         action="store_true",
         help="UNSECURED / UNBOUND MODE: Disables supervisor rollback safeguards, test-before-acceptance constraints, and Layer A immutability for testing in a dedicated sandbox.",
     )
+
 
     args = parser.parse_args()
     print_banner()
@@ -151,7 +185,32 @@ def main():
         print("[+] Emergency Kill Switch DEACTIVATED. System is ready to run.")
         return
 
+    if args.heal_now:
+        print("[*] Running AutoHealer diagnostic scan & repair...")
+        healer = AutoHealer(workspace_root=root)
+        report = healer.diagnose()
+        print(f"System State: {'HEALTHY' if report.is_healthy else 'STALLED/DEGRADED'}")
+        if report.is_healthy:
+            print("[+] No stalled tasks, frozen processes, or metric deadlocks detected.")
+        else:
+            print(f"[!] Detected {len(report.stuck_issues)} issue(s):")
+            for issue in report.stuck_issues:
+                print(f"  - {issue}")
+            print("\n[*] Applying targeted self-healing actions...")
+            actions = healer.heal(report)
+            for a in actions:
+                status_str = "[FIXED]" if a.success else "[FAILED]"
+                print(f"  {status_str} {a.issue_type}: {a.action_taken} ({a.details})")
+        return
+
+    if args.healer:
+        print("[*] Starting AutoHealer continuous monitoring daemon...")
+        healer = AutoHealer(workspace_root=root)
+        healer.run_monitor_loop()
+        return
+
     if args.rollback:
+
         supervisor = Supervisor(workspace_root=root, unsecured=args.unsecured)
         print("[*] Initiating manual rollback to known-good version...")
         success = supervisor.rollback_to_known_good("Manual operator request")

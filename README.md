@@ -170,6 +170,8 @@ python run.py --cycles 5
 | :--- | :--- |
 | `python run.py` | Starts the Protected Supervisor and manages the Agent |
 | `python run.py --status` | Prints 10-point health check, diagnostics, and recent experiments |
+| `python run.py --heal-now` | **Auto-Healer Diagnostic Scan**: Inspects for freezes, stalls, or plateaus and fixes them |
+| `python run.py --healer` | **Auto-Healer Daemon**: Runs continuous monitor service loop in background |
 | `python run.py --cycles N` | Runs the agent for N cycles and cleanly stops |
 | `python run.py --kill` | **Emergency Kill Switch**: Instantly stops agent subprocesses |
 | `python run.py --resume` | Deactivates kill switch and resumes operation |
@@ -235,3 +237,14 @@ Supervisor periodically verifies:
 8. API connectivity status.
 9. RAM & CPU usage within thresholds (< 1024 MB).
 10. No runaway child processes (< 15 processes).
+
+### 5. Autonomous Auto-Healer & Progress Stagnation Recovery
+When autonomous agents run for long stretches, they can become stuck in various ways: a subprocess freezes, an objective hangs in an infinite loop, Git locks get left behind after abrupt exits, state files get corrupted, or the agent gets trapped in a local optimum (tweaking minor parameters without real metric growth).
+
+The **AutoHealer** (`system/supervisor/auto_healer.py`) continuously inspects and actively repairs these situations:
+- **Frozen Process Detection**: If heartbeat age exceeds 60s, it kills the hung process tree, resets the heartbeat, and triggers a clean restart.
+- **Stalled Objective Recovery**: If an objective stays in progress for >180s without progressing, it is archived to `objectives.json` as abandoned and `current_objective.json` is cleared to let the agent pick up fresh work.
+- **Metric Stagnation Plateau Breaker**: If recent cycles show zero test growth or repeated failures, the healer injects a `STAGNATION_BREAKER` directive (`state/divergent_directive.json`). This signals the `ObjectiveManager` to bypass micro-optimizations and give a **+3.0 priority boost** to macro-architectural changes, new algorithms, or deeper test suites.
+- **Git Lock Clearing**: Automatically detects and unlinks stale `.git/index.lock` files that would otherwise block all future commits.
+- **Corrupted State Recovery**: Automatically detects malformed JSON state files and resets them to validated schemas while preserving operational history in `state/lessons.json`.
+

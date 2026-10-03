@@ -24,16 +24,23 @@ from .protection import (
 )
 from .watchdog import Watchdog
 from .health_check import HealthChecker, HealthStatus
+from .auto_healer import AutoHealer
 
 
 class Supervisor:
-    def __init__(self, workspace_root: Optional[Path] = None, config_path: Optional[Path] = None):
+    def __init__(
+        self,
+        workspace_root: Optional[Path] = None,
+        config_path: Optional[Path] = None,
+        unsecured: bool = False,
+    ):
         self.workspace_root = (workspace_root or Path(__file__).resolve().parent.parent.parent).resolve()
         self.system_dir = self.workspace_root / "system"
         self.supervisor_dir = self.system_dir / "supervisor"
         self.state_dir = self.workspace_root / "state"
         self.logs_dir = self.workspace_root / "logs"
         self.backups_dir = self.workspace_root / "backups"
+        self.unsecured = unsecured
 
         # Create directories
         for d in [self.state_dir, self.logs_dir, self.backups_dir]:
@@ -41,6 +48,7 @@ class Supervisor:
 
         self.config_path = config_path or (self.supervisor_dir / "config.yaml")
         self.config = self._load_config()
+
 
         self._setup_logging()
 
@@ -65,6 +73,14 @@ class Supervisor:
             baseline_hashes=self.baseline_hashes,
             required_files=self.config.get("health_check", {}).get("required_files"),
             required_packages=self.config.get("health_check", {}).get("required_packages"),
+            logger=self.logger,
+        )
+
+        self.auto_healer = AutoHealer(
+            workspace_root=self.workspace_root,
+            max_freeze_seconds=self.config.get("auto_healer", {}).get("max_freeze_seconds", 60.0),
+            max_objective_age_seconds=self.config.get("auto_healer", {}).get("max_objective_age_seconds", 180.0),
+            stagnation_cycle_limit=self.config.get("auto_healer", {}).get("stagnation_cycle_limit", 3),
             logger=self.logger,
         )
 
@@ -186,10 +202,15 @@ class Supervisor:
         Rolls back the workspace to the last verified known-good Git commit.
         Protects logs/ and state/ from being deleted during rollback.
         """
+        if self.unsecured:
+            self.logger.warning(f"Unsecured mode active: Rollback bypassed for reason '{reason}'.")
+            return True
+
         kg_file = self.state_dir / "known_good_version.json"
         if not kg_file.exists():
             self.logger.error("Rollback failed: No known-good version file found.")
             return False
+
 
         try:
             with open(kg_file, "r", encoding="utf-8") as f:
@@ -301,11 +322,17 @@ class Supervisor:
             env["PYTHONUNBUFFERED"] = "1"
             env["SUPERVISOR_ACTIVE"] = "1"
 
+            cmd = [sys.executable, "-u", str(entrypoint)]
+            if self.unsecured:
+                cmd.append("--unsecured")
+                env["AGENT_UNSECURED"] = "1"
+
             self.agent_process = subprocess.Popen(
-                [sys.executable, "-u", str(entrypoint)],
+                cmd,
                 cwd=self.workspace_root,
                 env=env,
             )
+
             self.agent_psutil_proc = psutil.Process(self.agent_process.pid)
             self.watchdog.reset_objective_timer()
             self.logger.info(f"Agent running under PID {self.agent_process.pid}")
@@ -468,7 +495,12 @@ class Supervisor:
                         self.rollback_to_known_good(f"Health check failed: {'; '.join(health.failures)}")
                         self.start_agent()
 
+                # 5. Periodic auto-healer inspection and remediation (every 3 cycles)
+                if cycle % 3 == 0:
+                    self.auto_healer.check_and_heal(self.agent_psutil_proc, supervisor=self)
+
                 time.sleep(poll_interval)
+
 
         except KeyboardInterrupt:
             self.logger.info("Supervisor received interrupt signal (Ctrl+C). Cleaning up...")

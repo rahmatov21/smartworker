@@ -1,9 +1,10 @@
 {
-  "supervisor/__init__.py": "1ef733db8a864a232a84c7ffdbd67c4e25869cf78f4ea3c344548fc8f91d126f",
+  "supervisor/__init__.py": "9a4e24499c70330089dde7654ef9832959010ac0f0b1de43b154f87c4580632f",
   "supervisor/auto_healer.py": "6662de3ea9d6d78336d924f305c3f36b8610954e2b175d1f818c6805032a10a1",
-  "supervisor/config.yaml": "7d9d8793e818114b06c1b0ff640eaca6f7746b344123389f32ec4ecdb9e1370d",
+  "supervisor/baseline_hashes.json": "8f9af9fe3d2ed6bbb601615b679d050541cf1de78973eb385b05920bbbc3e0c6",
+  "supervisor/config.yaml": "fd66f81c61e3c8dbffe14b355e6ac0c921c575071b65ec5d1a3a776ed0c3636a",
   "supervisor/health_check.py": "3b5b6ed93306df4c8247ab9da7996bb1befb23d843e26b1b428505a4ba56c3c8",
   "supervisor/protection.py": "2a6de79fd73d7db2a7b878f1b23dd52060c5b0ce582d42763242d537cc7fe1a5",
-  "supervisor/supervisor.py": "93a4ee22f845a3ee1686f6c635d6be2d81984bff7bbe033e1fbc52242f789614",
+  "supervisor/supervisor.py": "f98fe05739d8ab5854967d487be70455127bae396e0991d28472fdc17c486b2a",
   "supervisor/watchdog.py": "a4741a1924176ae554a33631e98489132946fc4af71604aef598ec3f3343b6ad"
 }

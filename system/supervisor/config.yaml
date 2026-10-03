@@ -31,3 +31,11 @@ health_check:
     - "requests"
     - "yaml"
     - "pytest"
+
+auto_healer:
+  poll_interval_seconds: 10
+  max_freeze_seconds: 60.0
+  max_objective_age_seconds: 180.0
+  stagnation_cycle_limit: 3
+  auto_restart_on_heal: true
+
