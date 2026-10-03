@@ -46,6 +46,7 @@ class OpenRouterClient:
         self.model = os.environ.get("OPENROUTER_MODEL", model)
         self.base_url = os.environ.get("OPENROUTER_BASE_URL", base_url).rstrip("/")
         self.cooldown_seconds = cooldown_seconds
+        self.request_delay_seconds = float(os.environ.get("REQUEST_DELAY_SECONDS", "15.0"))
         self.logger = logger or logging.getLogger("OpenRouterClient")
 
         # Discover API keys from parameter or environment variables
@@ -201,6 +202,14 @@ class OpenRouterClient:
                     key_status.consecutive_failures = 0
                     key_status.last_error = None
                     content = data["choices"][0]["message"]["content"]
+
+                    # Post-request rate-limit pacing delay (default: 15s)
+                    if self.request_delay_seconds > 0:
+                        self.logger.info(
+                            f"Enforcing rate-limit pacing delay ({self.request_delay_seconds:.1f}s) after AI request..."
+                        )
+                        time.sleep(self.request_delay_seconds)
+
                     return content
 
                 elif resp.status_code in (429, 401, 402):
@@ -209,6 +218,14 @@ class OpenRouterClient:
                         f"Key #{key_status.index + 1} rejected with status {resp.status_code}. Rotating..."
                     )
                     self.rotate_to_next_key(error_msg, status_code=resp.status_code)
+
+                    if resp.status_code == 429:
+                        backoff = max(self.request_delay_seconds, 15.0)
+                        self.logger.info(
+                            f"Rate limit (429) encountered. Pausing for {backoff:.1f}s before next request attempt..."
+                        )
+                        time.sleep(backoff)
+
                     continue
 
                 else:
