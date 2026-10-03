@@ -114,30 +114,45 @@ def main():
         action="store_true",
         help="Clear the kill switch and allow the system to resume",
     )
+    parser.add_argument(
+        "--unsecured",
+        action="store_true",
+        help="UNSECURED / UNBOUND MODE: Disables supervisor rollback safeguards, test-before-acceptance constraints, and Layer A immutability for testing in a dedicated sandbox.",
+    )
 
     args = parser.parse_args()
     print_banner()
 
     root = Path(__file__).resolve().parent
 
+    if args.unsecured:
+        print("""
+================================================================================
+                    [!]  WARNING: UNSECURED MODE ACTIVE  [!]
+  Supervisor guardrails, auto-rollback on test failures, and Layer A immutability
+  are DISABLED. The agent is permitted full unbounded autonomous self-modification.
+  Use only in an isolated sandbox or dedicated testing environment.
+================================================================================
+""")
+
     if args.status:
         show_status(root)
         return
 
     if args.kill:
-        supervisor = Supervisor(workspace_root=root)
+        supervisor = Supervisor(workspace_root=root, unsecured=args.unsecured)
         supervisor.activate_kill_switch()
         print("[!] Emergency Kill Switch ACTIVATED. Agent processes will be terminated.")
         return
 
     if args.resume:
-        supervisor = Supervisor(workspace_root=root)
+        supervisor = Supervisor(workspace_root=root, unsecured=args.unsecured)
         supervisor.deactivate_kill_switch()
         print("[+] Emergency Kill Switch DEACTIVATED. System is ready to run.")
         return
 
     if args.rollback:
-        supervisor = Supervisor(workspace_root=root)
+        supervisor = Supervisor(workspace_root=root, unsecured=args.unsecured)
         print("[*] Initiating manual rollback to known-good version...")
         success = supervisor.rollback_to_known_good("Manual operator request")
         if success:
@@ -148,13 +163,13 @@ def main():
 
     if args.agent_only:
         print("[*] Launching Autonomous Agent in standalone mode...")
-        agent = AutonomousAgent(workspace_root=root)
+        agent = AutonomousAgent(workspace_root=root, unsecured=args.unsecured)
         agent.run(max_cycles=args.cycles)
         return
 
     # Default: Run Protected Supervisor (Layer A)
     print("[*] Starting Protected Supervisor (Layer A)...")
-    supervisor = Supervisor(workspace_root=root)
+    supervisor = Supervisor(workspace_root=root, unsecured=args.unsecured)
     supervisor.run(max_cycles=args.cycles)
 
 

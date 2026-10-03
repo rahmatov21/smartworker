@@ -175,6 +175,24 @@ python run.py --cycles 5
 | `python run.py --resume` | Deactivates kill switch and resumes operation |
 | `python run.py --rollback` | Manually restores workspace to last known-good commit |
 | `python run.py --agent-only` | Runs agent directly in foreground (for development) |
+| `python run.py --unsecured` | **Unsecured / Unbound Mode**: Disables supervisor rollback safeguards and layer protections |
+| `python run.py --unsecured --agent-only` | Runs agent directly without guardrails or auto-rollback on test failures |
+
+### Unsecured / Unbound Mode (Experimental Sandbox)
+
+For testing in an isolated sandbox or disposable container where you want to see how far the agent evolves without restrictions:
+
+```powershell
+python run.py --unsecured
+# Or standalone without supervisor:
+python run.py --unsecured --agent-only
+```
+
+In this mode:
+- **Auto-rollback is lifted**: When code modifications break unit tests or benchmarks, the agent does *not* revert; changes are committed anyway, allowing speculative and non-monotonic improvement trajectories.
+- **Layer A immutability barrier is lifted**: The agent can inspect, refactor, and self-modify its own tools, supervisor kernel, and architecture.
+- **Circuit breaker rollbacks are bypassed**: The supervisor will not force a reset upon repeated failures.
+- **Kill switch remains responsive**: You can still halt execution at any moment using `python run.py --kill`.
 
 ---
 
