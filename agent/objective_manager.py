@@ -218,7 +218,49 @@ class ObjectiveManager:
             except Exception:
                 pass
 
+        # Check for user-steered decision preferences (from Telegram /steer or /prioritize)
+        decision_pref_file = self.state_dir / "decision_preferences.json"
+        steered_boosts = {}
+        priority_keyword = ""
+        if decision_pref_file.exists():
+            try:
+                with open(decision_pref_file, "r", encoding="utf-8") as dpf:
+                    steered_data = json.load(dpf)
+                steered_boosts = steered_data.get("category_boosts", {})
+                priority_keyword = steered_data.get("priority_keyword", "").lower()
+            except Exception:
+                pass
+
         objectives = []
+
+        # Check for user-directed commands (from Telegram /build or CLI)
+        user_directives_file = self.state_dir / "user_directives.json"
+        if user_directives_file.exists():
+            try:
+                with open(user_directives_file, "r", encoding="utf-8") as udf:
+                    user_directives = json.load(udf)
+                pending_directives = [d for d in user_directives if d.get("status") == "pending"]
+                for p_idx, p_dir in enumerate(pending_directives):
+                    user_obj = Objective(
+                        id=p_dir.get("id", f"user-{int(time.time())}-{p_idx:02d}"),
+                        title=p_dir.get("title", "User Directed Task"),
+                        category="user_directed",
+                        hypothesis=p_dir.get("hypothesis", p_dir.get("description", "Execute user build command")),
+                        target_files=p_dir.get("target_files", ["project/src/ai_pipeline.py", "project/tests/test_ai_pipeline.py"]),
+                        impact_score=10.0,
+                        feasibility_score=10.0,
+                        safety_score=10.0,
+                        testability_score=10.0,
+                        alignment_score=10.0,
+                        redundancy_penalty=0.0,
+                        priority_score=99.0,  # Top priority: user-directed builds execute first
+                        requires_agent_restart=p_dir.get("requires_restart", False),
+                        status="pending",
+                    )
+                    objectives.append(user_obj)
+            except Exception as e:
+                self.logger.warning(f"Failed to load user directives: {e}")
+
         for idx, item in enumerate(candidates_catalog):
             # Check redundancy against recent failures
             penalty = 0.0
@@ -227,8 +269,11 @@ class ObjectiveManager:
                     penalty = 4.0
                     break
 
-            # Apply stagnation breaker boost if applicable
+            # Apply stagnation breaker and user-steered boosts
             boost = 3.0 if item["category"] in boosted_categories else 0.0
+            boost += steered_boosts.get(item["category"], 0.0)
+            if priority_keyword and (priority_keyword in item["title"].lower() or priority_keyword in item["category"].lower()):
+                boost += 6.0
 
             priority = self.calculate_priority_score(
                 impact=item["impact"],
@@ -260,6 +305,7 @@ class ObjectiveManager:
         # Sort descending by priority score
         objectives.sort(key=lambda o: o.priority_score, reverse=True)
         return objectives
+
 
     def select_next_objective(self, mission: str = "Continuously improve this system.") -> Objective:
         """
@@ -319,4 +365,21 @@ class ObjectiveManager:
         with open(self.objectives_history_file, "w", encoding="utf-8") as f:
             json.dump(history, f, indent=2)
 
+        # If this was a user-directed task, mark it finished in user_directives.json
+        if obj.category == "user_directed" or obj.id.startswith("user-"):
+            user_directives_file = self.state_dir / "user_directives.json"
+            if user_directives_file.exists():
+                try:
+                    with open(user_directives_file, "r", encoding="utf-8") as udf:
+                        directives = json.load(udf)
+                    for d in directives:
+                        if d.get("id") == obj.id or (d.get("status") == "pending" and d.get("title") == obj.title):
+                            d["status"] = "completed" if success else "failed"
+                            d["completed_at"] = time.time()
+                    with open(user_directives_file, "w", encoding="utf-8") as udf:
+                        json.dump(directives, udf, indent=2)
+                except Exception:
+                    pass
+
         self.clear_current_objective()
+
