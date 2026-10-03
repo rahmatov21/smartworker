@@ -514,5 +514,20 @@
         "project/tests/test_ai_pipeline.py"
       ]
     }
+  },
+  {
+    "id": "lesson-0037",
+    "timestamp": 1791057259.6752093,
+    "date": "2026-10-04 00:54:19",
+    "topic": "Optimize vector similarity search in project pipeline with vectorization",
+    "lesson": "Failed to implement 'Optimize vector similarity search in project pipeline with vectorization' safely. Failure reason: Tests failed (1 failures, 0 errors).. Rollback restored codebase to clean checkpoint.",
+    "outcome": "FAILURE",
+    "context": {
+      "experiment_id": "obj-1791057247-03",
+      "changes": [
+        "project/src/ai_pipeline.py",
+        "project/benchmarks/benchmark_pipeline.py"
+      ]
+    }
   }
 ]
