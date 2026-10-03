@@ -106,3 +106,13 @@ def test_pipeline_levenshtein_distance():
     if hasattr(pipeline, "levenshtein_distance"):
         assert pipeline.levenshtein_distance("kitten", "sitting") == 3
         assert pipeline.levenshtein_distance("same", "same") == 0
+
+
+def test_pipeline_ngrams_extraction():
+    from project.src.ai_pipeline import TextPipeline
+    pipeline = TextPipeline()
+    if hasattr(pipeline, "ngrams"):
+        tokens = ["deep", "learning", "neural", "network"]
+        bigrams = pipeline.ngrams(tokens, 2)
+        assert len(bigrams) == 3
+        assert bigrams[0] == ("deep", "learning")
