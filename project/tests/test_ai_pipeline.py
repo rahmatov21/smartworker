@@ -74,3 +74,11 @@ def test_search_ranking():
     top_doc_idx = results[0][0]
     assert top_doc_idx in (0, 2)
     assert results[0][1] > results[-1][1]
+
+
+def test_pipeline_boundary_empty_string():
+    from project.src.ai_pipeline import TextPipeline
+    pipeline = TextPipeline()
+    res = pipeline.process("")
+    assert res["tokens"] == []
+    assert res["word_count"] == 0
