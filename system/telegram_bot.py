@@ -647,6 +647,9 @@ class TelegramBot:
                     text = msg.get("text", "")
 
                     if chat_id and text:
+                        if not self.authorized_chat_id:
+                            self.authorized_chat_id = str(chat_id)
+                            self.logger.info(f"Auto-captured authorized Telegram chat ID: {self.authorized_chat_id}")
                         self.logger.info(f"Received Telegram command from {chat_id}: {text}")
                         self.handle_command(chat_id, text)
 
@@ -654,6 +657,16 @@ class TelegramBot:
             self.logger.info("Telegram Bot stopped by operator.")
         finally:
             self.is_running = False
+
+    def start_in_background(self) -> Optional[threading.Thread]:
+        """Starts the Telegram bot polling loop in a background daemon thread."""
+        if not self.token:
+            self.logger.warning("No TELEGRAM_BOT_TOKEN configured. Telegram bot daemon not started.")
+            return None
+        thread = threading.Thread(target=self.run, name="TelegramBotDaemon", daemon=True)
+        thread.start()
+        self.logger.info("Telegram Bot successfully launched in background daemon thread.")
+        return thread
 
 
 def main():

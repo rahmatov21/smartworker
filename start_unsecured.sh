@@ -36,14 +36,22 @@ else
     echo "[*] Virtual environment found."
 fi
 
-# 4. Check for .env file
+# 4. Check and export .env file
 if [ ! -f ".env" ]; then
     if [ -f ".env.example" ]; then
         echo "[!] .env not found. Creating from .env.example..."
         cp .env.example .env
-        echo "[!] Please configure your OpenRouter API keys in .env before running!"
+        echo "[!] Please configure your OpenRouter API keys and Telegram token in .env before running!"
     fi
 fi
+
+if [ -f ".env" ]; then
+    echo "[*] Loading environment configuration from .env..."
+    set -a
+    source .env 2>/dev/null || true
+    set +a
+fi
+
 
 # 5. Create logs and state directories
 mkdir -p logs state system

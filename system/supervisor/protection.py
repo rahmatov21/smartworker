@@ -37,8 +37,8 @@ def compute_supervisor_hashes(system_dir: Path) -> Dict[str, str]:
 
     for root, _, files in os.walk(system_dir):
         for file in sorted(files):
-            # Skip flag files, temporary files, pycache
-            if file.endswith((".flag", ".tmp", ".pyc")) or "__pycache__" in root:
+            # Skip flag files, temporary files, pycache, and the baseline hash file itself
+            if file.endswith((".flag", ".tmp", ".pyc")) or file == "baseline_hashes.json" or "__pycache__" in root:
                 continue
             full_path = Path(root) / file
             rel_path = full_path.relative_to(system_dir).as_posix()

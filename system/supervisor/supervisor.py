@@ -26,6 +26,12 @@ from .watchdog import Watchdog
 from .health_check import HealthChecker, HealthStatus
 from .auto_healer import AutoHealer
 
+try:
+    from system.env_loader import load_dotenv
+    load_dotenv(Path(__file__).resolve().parent.parent.parent)
+except Exception:
+    pass
+
 
 class Supervisor:
     def __init__(
@@ -94,6 +100,22 @@ class Supervisor:
         )
 
         self._ensure_known_good_version()
+
+        # Integrated Telegram Bot listener
+        self.telegram_bot = None
+        self._init_telegram_bot()
+
+    def _init_telegram_bot(self) -> None:
+        """Launches Telegram Bot monitoring daemon if TELEGRAM_BOT_TOKEN is configured."""
+        token = os.environ.get("TELEGRAM_BOT_TOKEN", "").strip()
+        if token:
+            try:
+                from system.telegram_bot import TelegramBot
+                self.telegram_bot = TelegramBot(workspace_root=self.workspace_root)
+                self.telegram_bot.start_in_background()
+                self.logger.info("Integrated Telegram Bot daemon started successfully.")
+            except Exception as e:
+                self.logger.warning(f"Could not launch Telegram Bot daemon: {e}")
 
     def _load_config(self) -> Dict[str, Any]:
         """Loads supervisor config from YAML."""

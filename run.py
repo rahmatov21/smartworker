@@ -16,6 +16,9 @@ root_dir = Path(__file__).resolve().parent
 if str(root_dir) not in sys.path:
     sys.path.insert(0, str(root_dir))
 
+from system.env_loader import load_dotenv
+load_dotenv(root_dir)
+
 from system.supervisor.supervisor import Supervisor
 from system.supervisor.health_check import HealthChecker
 from system.supervisor.protection import compute_supervisor_hashes
@@ -152,6 +155,11 @@ def main():
         action="store_true",
         help="UNSECURED / UNBOUND MODE: Disables supervisor rollback safeguards, test-before-acceptance constraints, and Layer A immutability for testing in a dedicated sandbox.",
     )
+    parser.add_argument(
+        "--telegram",
+        action="store_true",
+        help="Run standalone Telegram Bot monitoring service.",
+    )
 
 
     args = parser.parse_args()
@@ -168,6 +176,16 @@ def main():
   Use only in an isolated sandbox or dedicated testing environment.
 ================================================================================
 """)
+
+    if args.telegram:
+        print("[*] Starting Telegram Bot listener service...")
+        try:
+            from system.telegram_bot import TelegramBot
+            bot = TelegramBot(workspace_root=root)
+            bot.run()
+        except Exception as e:
+            print(f"[!] Error launching Telegram Bot: {e}")
+        return
 
     if args.status:
         show_status(root)
