@@ -6,6 +6,7 @@ Validates zero test regressions, benchmark performance, and supervisor integrity
 """
 
 import logging
+import os
 import py_compile
 import time
 from dataclasses import dataclass, field

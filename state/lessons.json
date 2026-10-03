@@ -69,5 +69,19 @@
         "project/tests/test_ai_pipeline.py"
       ]
     }
+  },
+  {
+    "id": "lesson-0006",
+    "timestamp": 1791029309.768426,
+    "date": "2026-10-03 17:08:29",
+    "topic": "Unsecured Test Change Kept Without Rollback",
+    "lesson": "[UNSECURED] Experiment 'Unsecured Test Change Kept Without Rollback' kept despite test failure to observe downstream evolution.",
+    "outcome": "FAILURE",
+    "context": {
+      "experiment_id": "test-obj-unsecured-01",
+      "changes": [
+        "project/tests/test_ai_pipeline.py"
+      ]
+    }
   }
 ]

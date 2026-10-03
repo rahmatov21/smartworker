@@ -118,5 +118,26 @@
       }
     },
     "lesson": "Successfully improved system: Test Objective Destined to Succeed. All 5 tests passed. Zero regressions."
+  },
+  {
+    "id": "test-obj-unsecured-01",
+    "timestamp": 1791029309.7671134,
+    "date": "2026-10-03 17:08:29",
+    "objective": "Unsecured Test Change Kept Without Rollback",
+    "hypothesis": "Testing unsecured persistence",
+    "changes": [
+      "project/tests/test_ai_pipeline.py"
+    ],
+    "passed": false,
+    "status": "ROLLED_BACK",
+    "commit": "1a3592be232db3d872b796192f67f25bb89f0cdf",
+    "metrics_before": {
+      "tests_passed": 5,
+      "test_duration": 3.14
+    },
+    "metrics_after": {
+      "tests_passed": 0
+    },
+    "lesson": "[UNSECURED] Experiment 'Unsecured Test Change Kept Without Rollback' kept despite test failure to observe downstream evolution."
   }
 ]

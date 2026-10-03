@@ -7,6 +7,7 @@ and strictly enforces rollback upon unresolved failures.
 
 import json
 import logging
+import os
 import time
 from dataclasses import dataclass
 from pathlib import Path
