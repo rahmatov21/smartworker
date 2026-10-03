@@ -1,20 +1,9 @@
-import functools
-import functools
-import functools
-import functools
-import functools
-import functools
-import functools
-import functools
-import functools
-import functools
-import functools
-import functools
 """
 AI Text Processing & Semantic Retrieval Pipeline.
 Starter project codebase for autonomous self-improvement.
 """
 
+import functools
 import math
 import re
 from typing import Dict, List, Tuple, Any
@@ -80,3 +69,8 @@ class TextPipeline:
 
         ranked.sort(key=lambda x: x[1], reverse=True)
         return ranked
+
+    def batch_process(self, texts: List[str]) -> List[Dict[str, Any]]:
+        """Processes multiple text documents in a batch."""
+        return [self.process(t) for t in texts]
+
