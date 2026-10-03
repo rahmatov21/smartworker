@@ -1,0 +1,19 @@
+[Unit]
+Description=Autonomous Self-Improving AI Coding Agent (Unsecured Mode)
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/root/selfimprover
+ExecStart=/root/selfimprover/venv/bin/python -u run.py --unsecured
+Restart=always
+RestartSec=5
+KillMode=process
+TimeoutStopSec=15
+StandardOutput=append:/root/selfimprover/logs/service.log
+StandardError=append:/root/selfimprover/logs/service_err.log
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=multi-user.target
