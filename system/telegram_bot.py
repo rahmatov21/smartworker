@@ -16,7 +16,7 @@ import sys
 import threading
 import time
 from pathlib import Path
-from typing import Optional, Dict, Any, List
+from typing import Optional, Dict, Any, List, Tuple
 import requests
 
 try:
@@ -110,6 +110,28 @@ class TelegramBot:
     # ---------------------------------------------------------
     # Telegram API Communication
     # ---------------------------------------------------------
+    def verify_token(self) -> Tuple[bool, str]:
+        """
+        Validates the Telegram Bot Token against api.telegram.org/bot<token>/getMe.
+        Returns (is_valid, bot_username_or_error_message).
+        """
+        if not self.token:
+            return False, "TELEGRAM_BOT_TOKEN is not configured"
+        try:
+            resp = requests.get(f"{self.base_url}/getMe", timeout=10)
+            if resp.status_code == 200:
+                data = resp.json()
+                if data.get("ok"):
+                    bot_username = data.get("result", {}).get("username", "unknown_bot")
+                    return True, bot_username
+                return False, data.get("description", "Unknown error")
+            elif resp.status_code == 401:
+                return False, "Invalid Bot Token (Unauthorized 401)"
+            else:
+                return False, f"HTTP {resp.status_code}: {resp.text}"
+        except Exception as e:
+            return False, str(e)
+
     def send_message(self, chat_id: str | int, text: str, parse_mode: Optional[str] = "Markdown") -> bool:
         """Sends a message to Telegram with auto-chunking and Markdown error fallback."""
         if not self.token:
