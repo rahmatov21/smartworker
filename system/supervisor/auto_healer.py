@@ -47,7 +47,7 @@ class AutoHealer:
         self,
         workspace_root: Optional[Path] = None,
         max_freeze_seconds: float = 60.0,
-        max_objective_age_seconds: float = 180.0,
+        max_objective_age_seconds: float = 300.0,
         stagnation_cycle_limit: int = 3,
         auto_restart_on_heal: bool = True,
         logger: Optional[logging.Logger] = None,

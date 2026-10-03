@@ -622,9 +622,21 @@ class TelegramBot:
                         self._last_notified_objective_id = obj_id
                         title = curr_data.get("title", "")
                         hypothesis = curr_data.get("hypothesis", "")
+                        source = curr_data.get("source", "catalog")
+                        category = curr_data.get("category", "improvement")
+                        source_label = (
+                            "🧠 *AI Autonomous Decision (LLM Chosen)*"
+                            if source == "ai_autonomous_choice"
+                            else (
+                                "👤 *User Directed Build*"
+                                if source == "user_directed"
+                                else "⚙️ *Autonomous Continuous Improvement*"
+                            )
+                        )
                         msg = (
-                            f"🎯 *New Decision / Goal Started:*\n"
+                            f"{source_label}\n"
                             f"• *Objective:* {title}\n"
+                            f"• *Category:* `{category}`\n"
                             f"• *Goal:* _{hypothesis}_"
                         )
                         self.send_message(self.authorized_chat_id, msg)

@@ -7,10 +7,21 @@ generates improvement objectives, and prioritizes them using multi-criteria scor
 import json
 import logging
 import os
+import re
 import time
 from dataclasses import dataclass, asdict
 from pathlib import Path
 from typing import Dict, List, Optional, Any
+
+
+def _canonical_title(title: str) -> str:
+    """Normalizes title by removing IDs, #numbers, punctuation and extra spaces."""
+    if not title:
+        return ""
+    clean = re.sub(r"#\d+", "", title)
+    clean = re.sub(r"[^\w\s]", " ", clean).strip().lower()
+    return " ".join(clean.split())
+
 
 try:
     from .llm_client import OpenRouterClient
@@ -40,6 +51,7 @@ class Objective:
     requires_agent_restart: bool
     status: str                # pending, in_progress, completed, failed
     attempt: int = 1
+    source: str = "catalog"    # catalog, ai_autonomous_choice, user_directed
 
 
 class ObjectiveManager:
@@ -253,10 +265,18 @@ class ObjectiveManager:
             except Exception:
                 pass
 
+        # Build canonical titles set to match titles regardless of suffixes like #123, case, or formatting
+        completed_canonical = {_canonical_title(t) for t in completed_titles if t}
+
+        # Autonomous AI Objective Brainstorming: Ask LLM to inspect project and formulate next objective
+        ai_obj_data = self._generate_llm_objective(mission, needs, completed_canonical)
+        if ai_obj_data:
+            candidates_catalog.insert(0, ai_obj_data)
+
         # If all candidates in catalog are completed, add fresh dynamic candidates
-        uncompleted_in_catalog = [c for c in candidates_catalog if c["title"] not in completed_titles]
+        uncompleted_in_catalog = [c for c in candidates_catalog if _canonical_title(c["title"]) not in completed_canonical]
         if not uncompleted_in_catalog:
-            candidates_catalog.extend(self._generate_dynamic_candidates(completed_titles))
+            candidates_catalog.extend(self._generate_dynamic_candidates(completed_canonical))
 
         objectives = []
 
@@ -290,9 +310,10 @@ class ObjectiveManager:
 
         for idx, item in enumerate(candidates_catalog):
             penalty = 0.0
-            # Redundancy penalty for completed objectives: strongly demote already solved tasks
-            if item["title"] in completed_titles:
-                penalty += 15.0
+            canonical = _canonical_title(item["title"])
+            # Redundancy penalty for completed objectives: decisively demote already solved tasks
+            if canonical in completed_canonical:
+                penalty += 25.0
 
             # Redundancy penalty against recent failed topics
             for failed_topic in recent_failed_topics:
@@ -330,6 +351,7 @@ class ObjectiveManager:
                 priority_score=priority,
                 requires_agent_restart=item["requires_restart"],
                 status="pending",
+                source=item.get("source", "catalog"),
             )
             objectives.append(obj)
 
@@ -337,14 +359,49 @@ class ObjectiveManager:
         objectives.sort(key=lambda o: o.priority_score, reverse=True)
         return objectives
 
-    def _generate_dynamic_candidates(self, completed_titles: set) -> List[Dict[str, Any]]:
+    def _generate_dynamic_candidates(self, completed_canonical: set) -> List[Dict[str, Any]]:
         """Generates dynamic objectives to keep autonomous improvement expanding."""
-        timestamp = int(time.time())
         pool = [
             {
-                "title": f"Implement batch text processing and vector similarity #{timestamp % 1000}",
+                "title": "Implement Levenshtein distance and fuzzy string matching in TextPipeline",
+                "category": "performance_and_algorithms",
+                "hypothesis": "Fuzzy string matching enables typo-tolerant search and semantic query retrieval.",
+                "target_files": ["project/src/ai_pipeline.py", "project/tests/test_ai_pipeline.py"],
+                "impact": 8.5,
+                "feasibility": 9.5,
+                "safety": 9.5,
+                "testability": 9.5,
+                "alignment": 9.0,
+                "requires_restart": False,
+            },
+            {
+                "title": "Add n-gram tokenization supporting bigrams and trigrams to TextPipeline",
+                "category": "nlp_feature_engineering",
+                "hypothesis": "N-gram extraction captures multi-word phrases and contextual semantics beyond single words.",
+                "target_files": ["project/src/ai_pipeline.py", "project/tests/test_ai_pipeline.py"],
+                "impact": 8.5,
+                "feasibility": 9.0,
+                "safety": 9.5,
+                "testability": 9.5,
+                "alignment": 9.0,
+                "requires_restart": False,
+            },
+            {
+                "title": "Implement Shannon entropy and lexical diversity analytics in TextPipeline",
+                "category": "analytics_and_metrics",
+                "hypothesis": "Information entropy quantifies vocabulary richness and complexity across document corpuses.",
+                "target_files": ["project/src/ai_pipeline.py", "project/tests/test_ai_pipeline.py"],
+                "impact": 8.0,
+                "feasibility": 9.5,
+                "safety": 9.5,
+                "testability": 9.5,
+                "alignment": 8.5,
+                "requires_restart": False,
+            },
+            {
+                "title": "Add in-memory LRU search cache with hit and miss statistics",
                 "category": "performance_optimization",
-                "hypothesis": "Batch processing avoids function invocation overhead and supports multi-document processing.",
+                "hypothesis": "Caching search results eliminates redundant compute and cuts repeat query latency to under 1ms.",
                 "target_files": ["project/src/ai_pipeline.py", "project/tests/test_ai_pipeline.py"],
                 "impact": 8.5,
                 "feasibility": 9.0,
@@ -354,19 +411,31 @@ class ObjectiveManager:
                 "requires_restart": False,
             },
             {
-                "title": f"Add comprehensive boundary tests and Unicode normalization #{timestamp % 1000}",
-                "category": "testing_and_quality",
-                "hypothesis": "Handling unicode normalization prevents non-standard character crashes in tokenization.",
-                "target_files": ["project/tests/test_ai_pipeline.py"],
+                "title": "Implement batch similarity matrix calculation across document pairs",
+                "category": "performance_optimization",
+                "hypothesis": "Pairwise matrix comparison identifies duplicate documents and clusters similar contents.",
+                "target_files": ["project/src/ai_pipeline.py", "project/tests/test_ai_pipeline.py"],
+                "impact": 8.5,
+                "feasibility": 9.0,
+                "safety": 9.0,
+                "testability": 9.5,
+                "alignment": 9.0,
+                "requires_restart": False,
+            },
+            {
+                "title": "Add custom stop words configuration and punctuation filtering options",
+                "category": "customization_and_flexibility",
+                "hypothesis": "Customizable stop words allow domain-specific vocabulary tuning for specialized text retrieval.",
+                "target_files": ["project/src/ai_pipeline.py", "project/tests/test_ai_pipeline.py"],
                 "impact": 7.5,
                 "feasibility": 9.5,
                 "safety": 10.0,
-                "testability": 10.0,
+                "testability": 9.5,
                 "alignment": 8.5,
                 "requires_restart": False,
             },
             {
-                "title": f"Add atomic write locks and corrupted state recovery in agent memory #{timestamp % 1000}",
+                "title": "Add atomic write locks and corrupted state recovery in agent memory",
                 "category": "agent_self_improvement",
                 "hypothesis": "Transactional updates guarantee zero state corruption during sudden restarts.",
                 "target_files": ["agent/memory.py"],
@@ -378,8 +447,110 @@ class ObjectiveManager:
                 "requires_restart": True,
             },
         ]
-        return [c for c in pool if c["title"] not in completed_titles]
+        uncompleted = [c for c in pool if _canonical_title(c["title"]) not in completed_canonical]
+        if uncompleted:
+            return uncompleted
 
+        # If all predefined capabilities are complete, dynamically generate phase milestones
+        phase_idx = len(completed_canonical) + 1
+        return [
+            {
+                "title": f"Expand capability test matrix - Phase {phase_idx}",
+                "category": "testing_and_quality",
+                "hypothesis": f"Continuous edge-case testing cycle {phase_idx} increases codebase robustness.",
+                "target_files": ["project/tests/test_ai_pipeline.py"],
+                "impact": 7.0,
+                "feasibility": 9.5,
+                "safety": 10.0,
+                "testability": 10.0,
+                "alignment": 8.0,
+                "requires_restart": False,
+            }
+        ]
+
+    def _generate_llm_objective(
+        self,
+        mission: str,
+        needs: Dict[str, Any],
+        completed_canonical: set,
+    ) -> Optional[Dict[str, Any]]:
+        """
+        Uses the LLM to inspect project state and autonomously formulate a novel objective.
+        """
+        if self.llm.mock_mode:
+            return None
+
+        # Gather brief summary of current project files and tests
+        project_src = self.tools.list_files("project/src")
+        project_tests = self.tools.list_files("project/tests")
+
+        pipeline_preview = ""
+        try:
+            full_pipeline = self.tools.read_file("project/src/ai_pipeline.py")
+            pipeline_preview = full_pipeline[:1500]
+        except Exception:
+            pass
+
+        completed_sample = list(completed_canonical)[-10:] if completed_canonical else ["none yet"]
+
+        prompt = f"""You are the autonomous decision-making brain of an AI self-improving coding agent.
+Mission: {mission}
+
+Current Project Files:
+- Source Files: {project_src}
+- Test Files: {project_tests}
+- Current Tests Passing: {needs.get('test_results', {}).get('passed', 0)}
+
+Codebase Preview (project/src/ai_pipeline.py):
+```python
+{pipeline_preview}
+```
+
+Already Completed Improvements (DO NOT REPEAT ANY OF THESE):
+{json.dumps(completed_sample, indent=2)}
+
+Task:
+Analyze what capabilities, performance optimizations, algorithms, edge-case handlers, or unit tests this codebase is missing.
+Formulate the SINGLE most impactful, innovative, and concrete next improvement step.
+
+You MUST respond strictly with a single JSON object in the following format (no other text):
+{{
+  "title": "Clear, concise action title (e.g. Implement Levenshtein edit distance in TextPipeline)",
+  "category": "performance | algorithms | reliability | feature | code_quality",
+  "hypothesis": "Concrete explanation of how and why this improves the system",
+  "target_files": ["project/src/ai_pipeline.py", "project/tests/test_ai_pipeline.py"],
+  "impact": 9.0,
+  "feasibility": 9.0,
+  "safety": 9.5,
+  "testability": 9.5,
+  "alignment": 9.0,
+  "requires_restart": false
+}}"""
+
+        system_prompt = "You are an autonomous AI software architect. Output valid JSON only."
+
+        try:
+            self.logger.info("Querying OpenRouter LLM to autonomously formulate next improvement objective...")
+            resp = self.llm.generate(prompt=prompt, system_prompt=system_prompt, temperature=0.3)
+            clean_json = resp.strip()
+            if "```json" in clean_json:
+                clean_json = clean_json.split("```json")[1].split("```")[0].strip()
+            elif "```" in clean_json:
+                clean_json = clean_json.split("```")[1].split("```")[0].strip()
+
+            data = json.loads(clean_json)
+            if isinstance(data, dict) and "title" in data and "target_files" in data:
+                canonical = _canonical_title(data["title"])
+                if canonical not in completed_canonical:
+                    data["source"] = "ai_autonomous_choice"
+                    self.logger.info(f"AI autonomously formulated new objective: '{data['title']}'")
+                    return data
+                else:
+                    self.logger.warning(f"AI proposed an objective that was already completed: '{data['title']}'. Skipping.")
+        except Exception as e:
+            self.logger.warning(f"LLM objective formulation fallback to catalog: {e}")
+
+        return None
 
     def select_next_objective(self, mission: str = "Continuously improve this system.") -> Objective:
         """
