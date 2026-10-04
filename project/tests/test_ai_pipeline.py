@@ -143,3 +143,12 @@ def test_pipeline_shannon_entropy():
     if hasattr(pipeline, "shannon_entropy"):
         assert pipeline.shannon_entropy(["word", "word"]) == 0.0
         assert pipeline.shannon_entropy(["a", "b", "c"]) > 0.0
+
+
+def test_pipeline_similarity_matrix():
+    from project.src.ai_pipeline import TextPipeline
+    pipeline = TextPipeline()
+    if hasattr(pipeline, "similarity_matrix"):
+        mat = pipeline.similarity_matrix(["doc one", "doc two"])
+        assert len(mat) == 2
+        assert len(mat[0]) == 2
