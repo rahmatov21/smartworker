@@ -741,5 +741,20 @@
         "project/tests/test_ai_pipeline.py"
       ]
     }
+  },
+  {
+    "id": "lesson-0053",
+    "timestamp": 1791105016.7000778,
+    "date": "2026-10-04 14:10:16",
+    "topic": "Add n-gram tokenization supporting bigrams and trigrams to TextPipeline",
+    "lesson": "Successfully improved system: Add n-gram tokenization supporting bigrams and trigrams to TextPipeline. All 31 tests passed. Zero regressions.",
+    "outcome": "SUCCESS",
+    "context": {
+      "experiment_id": "obj-1791105009-05",
+      "changes": [
+        "project/src/ai_pipeline.py",
+        "project/tests/test_ai_pipeline.py"
+      ]
+    }
   }
 ]
