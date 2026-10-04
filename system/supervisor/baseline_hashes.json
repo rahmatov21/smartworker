@@ -1,6 +1,6 @@
 {
   "env_loader.py": "4469cd703836cf7b5543adb65ac0a54869f68355a5867a817f10357bf3c7885e",
-  "telegram_bot.py": "d27de5900a6ab0c155d9ae07627e64b6af80c6acfc563c1716765be74dd4f8d3",
+  "telegram_bot.py": "4c8e8120ee35f27358ca4760527bf349102df181efa3e1f6b3be9c44e57e5385",
   "supervisor/__init__.py": "8fd28e8a855337ff3931c248f8eaa906c8c19c4c5b6d7b31f68f3369af9e9fab",
   "supervisor/auto_healer.py": "19f3a0ca495c59725f36a615497862f9b1fb0dc77e0895ad4e30ec385abce3c5",
   "supervisor/config.yaml": "ff0443691bf1ea397855e0a9667727ecc21ab6c03a008d9b760740f72df8d78c",

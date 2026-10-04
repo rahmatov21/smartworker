@@ -96,3 +96,22 @@ def test_telegram_bot_kill_and_resume(mock_bot, tmp_path):
 
     mock_bot.handle_command(chat_id="999888777", command_text="/resume")
     assert not kill_file.exists()
+
+
+def test_telegram_bot_tools_command(mock_bot, tmp_path):
+    # Setup custom_tools directory in tmp_path
+    tools_dir = tmp_path / "agent" / "custom_tools"
+    tools_dir.mkdir(parents=True, exist_ok=True)
+    sample_tool = tools_dir / "sample_test_tool.py"
+    sample_tool.write_text(
+        'TOOL_SPEC = {"name": "sample_test_tool", "description": "A sample tool"}\n'
+        'def run(): return {"ok": True}\n',
+        encoding="utf-8",
+    )
+
+    mock_bot.handle_command(chat_id="999888777", command_text="/tools")
+    mock_bot.send_message.assert_called_once()
+    msg = mock_bot.send_message.call_args[0][1]
+    assert "Real-Time Dynamic Agent Tools" in msg
+    assert "sample_test_tool" in msg
+

@@ -221,6 +221,8 @@ class TelegramBot:
             self._cmd_logs(chat_id, args)
         elif cmd in ("/decision", "/goal", "/target"):
             self._cmd_decision(chat_id)
+        elif cmd in ("/tools", "/tool"):
+            self._cmd_tools(chat_id)
         elif cmd == "/build":
             self._cmd_build(chat_id, args)
         elif cmd == "/steer":
@@ -251,7 +253,8 @@ class TelegramBot:
             "• `/logs supervisor 30` - Show supervisor audit log\n"
             "• `/logs healer 20` - Show auto-healer actions log\n\n"
             "🎯 *2. Decisions & Goals:*\n"
-            "• `/decision` (or `/goal`) - View in-flight objective, its target goal, hypothesis, and upcoming candidate decisions\n\n"
+            "• `/decision` (or `/goal`) - View in-flight objective, its target goal, hypothesis, and upcoming candidate decisions\n"
+            "• `/tools` - Inspect real-time dynamic tools synthesized and registered by the agent\n\n"
             "🛠️ *3. Commands & Decision Steering:*\n"
             "• `/build <description>` - Command the agent to build/improve something for itself (queued with top priority)\n"
             "• `/steer <category>` - Steer decisions towards a category (`performance`, `quality`, `agent`, or `reset`)\n"
@@ -354,6 +357,41 @@ class TelegramBot:
                 pass
 
         self.send_message(chat_id, "\n".join(lines))
+
+    def _cmd_tools(self, chat_id: str | int) -> None:
+        """Lists all dynamically synthesized and registered agent tools."""
+        try:
+            from agent.tool_registry import ToolRegistry
+            registry = ToolRegistry(self.workspace_root)
+            tools = registry.list_tools()
+            if not tools:
+                self.send_message(
+                    chat_id,
+                    "🛠️ *Real-Time Dynamic Tools Registry*\n"
+                    "No custom tools currently registered in `agent/custom_tools/`.",
+                )
+                return
+
+            lines = [
+                "🛠️ *Real-Time Dynamic Agent Tools*",
+                "==================================",
+                f"Total Active Tools: `{len(tools)}`\n",
+            ]
+            for t in tools:
+                name = t.get("name", "unknown")
+                desc = t.get("description", "No description provided.")
+                params = t.get("parameters", [])
+                lines.append(f"• *{name}*")
+                lines.append(f"  📝 _{desc}_")
+                if params:
+                    p_str = ", ".join(f"`{p}`" for p in params)
+                    lines.append(f"  ⚙️ Args: {p_str}")
+                lines.append("")
+
+            lines.append("💡 _The agent autonomously synthesizes and invokes these tools at runtime to perform advanced tasks._")
+            self.send_message(chat_id, "\n".join(lines))
+        except Exception as e:
+            self.send_message(chat_id, f"❌ Failed to inspect tool registry: {e}")
 
     def _cmd_build(self, chat_id: str | int, args: List[str]) -> None:
         """Queues a user-directed objective to build something for itself or project."""
