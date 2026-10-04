@@ -170,3 +170,12 @@ class ToolRegistry:
             del meta[clean_name]
             self._save_metadata(meta)
         return True
+
+
+if __name__ == "__main__":
+    reg = ToolRegistry()
+    tools = reg.list_tools()
+    print(f"Registered Dynamic Tools ({len(tools)}):")
+    for t in tools:
+        print(f"  - {t['name']}: {t['description']}")
+
