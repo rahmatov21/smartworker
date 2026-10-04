@@ -1327,5 +1327,26 @@
       }
     },
     "lesson": "Successfully improved system: Add n-gram tokenization supporting bigrams and trigrams to TextPipeline. All 31 tests passed. Zero regressions."
+  },
+  {
+    "id": "test-obj-fail-01",
+    "timestamp": 1791105052.2041507,
+    "date": "2026-10-04 14:10:52",
+    "objective": "Test Objective Destined to Fail",
+    "hypothesis": "Testing failure handling",
+    "changes": [
+      "project/tests/test_ai_pipeline.py"
+    ],
+    "passed": false,
+    "status": "ROLLED_BACK",
+    "commit": "4b34e9bac1385f34476fcaec752a151a0e4d4a7f",
+    "metrics_before": {
+      "tests_passed": 31,
+      "test_duration": 3.55
+    },
+    "metrics_after": {
+      "tests_passed": 0
+    },
+    "lesson": "Failed to implement 'Test Objective Destined to Fail' safely. Failure reason: Unit tests crashed. Rollback restored codebase to clean checkpoint."
   }
 ]
