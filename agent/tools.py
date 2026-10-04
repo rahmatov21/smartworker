@@ -17,6 +17,11 @@ from typing import Dict, List, Optional, Any, Tuple
 
 from system.supervisor.protection import is_path_protected, assert_path_allowed, ProtectionError
 
+try:
+    from .tool_registry import ToolRegistry
+except (ImportError, ValueError):
+    from agent.tool_registry import ToolRegistry
+
 
 class ToolExecutionError(Exception):
     pass
@@ -35,6 +40,7 @@ class AgentTools:
         self.logs_dir.mkdir(parents=True, exist_ok=True)
         self.logger = logger or logging.getLogger("AgentTools")
         self.tool_log_file = self.logs_dir / "tool_calls.log"
+        self.tool_registry = ToolRegistry(workspace_root=self.workspace_root, logger=self.logger)
 
     def _log_tool_call(self, tool_name: str, args: Dict[str, Any], result_summary: str, success: bool) -> None:
         """Appends tool execution event to logs/tool_calls.log."""
@@ -324,3 +330,42 @@ class AgentTools:
         except Exception as e:
             self._log_tool_call("git_rollback", {"target_commit": commit_hash}, str(e), False)
             return False
+
+    def has_code_changes(self) -> bool:
+        """Returns True if there are actual unstaged/staged modifications in agent/ or project/."""
+        try:
+            res = subprocess.run(
+                ["git", "status", "--porcelain", "--", "agent", "project"],
+                cwd=self.workspace_root,
+                capture_output=True,
+                text=True,
+            )
+            # Filter out runtime log or flag files if any
+            lines = [l for l in res.stdout.splitlines() if l.strip() and not l.endswith(".flag")]
+            return len(lines) > 0
+        except Exception:
+            return True
+
+    # Real-Time Custom Tool Engine
+    def create_custom_tool(self, name: str, code: str, description: str = "") -> Dict[str, Any]:
+        """Synthesizes, tests, and activates a new tool for the agent at runtime."""
+        res = self.tool_registry.register_tool(name, code, description)
+        self._log_tool_call("create_custom_tool", {"name": name, "desc": description}, f"Tool {name} created", True)
+        return res
+
+    def call_custom_tool(self, name: str, **kwargs) -> Any:
+        """Invokes a custom runtime tool."""
+        start = time.time()
+        try:
+            res = self.tool_registry.call_tool(name, **kwargs)
+            duration = round((time.time() - start) * 1000, 2)
+            self._log_tool_call("call_custom_tool", {"name": name}, f"Result returned in {duration}ms", True)
+            return res
+        except Exception as e:
+            self._log_tool_call("call_custom_tool", {"name": name}, str(e), False)
+            raise
+
+    def list_custom_tools(self) -> List[Dict[str, Any]]:
+        """Lists all dynamically created and active custom tools."""
+        return self.tool_registry.list_tools()
+

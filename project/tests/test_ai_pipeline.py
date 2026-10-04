@@ -1,27 +1,7 @@
-import functools
-import functools
-import functools
-import functools
-import functools
-import functools
-import functools
-import functools
-import functools
-import functools
-import functools
-import functools
-import functools
-import functools
-import functools
-import functools
-import functools
-import functools
-import functools
-import functools
-import functools
-import functools
 """
 Unit tests for AI Text Processing & Retrieval Pipeline.
+Tests basic tokenization, similarity ranking, BM25, RRF hybrid search,
+boundary conditions, and metrics.
 """
 
 import pytest
@@ -44,6 +24,18 @@ def test_term_frequency_calculation():
     assert tf["apple"] == 0.5
     assert tf["banana"] == 0.25
     assert tf["cherry"] == 0.25
+
+
+def test_shannon_entropy_calculation():
+    pipeline = TextPipeline()
+    assert pipeline.shannon_entropy(["word", "word", "word"]) == 0.0
+    assert pipeline.shannon_entropy(["a", "b", "c", "d"]) == 2.0
+
+
+def test_lexical_diversity_calculation():
+    pipeline = TextPipeline()
+    assert pipeline.lexical_diversity(["unique", "words", "here"]) == 1.0
+    assert pipeline.lexical_diversity(["repeat", "repeat"]) == 0.5
 
 
 def test_cosine_similarity_identical():
@@ -70,14 +62,38 @@ def test_search_ranking():
     ]
     query = "machine learning and intelligence"
     results = pipeline.search(query, docs)
-    # The first document or third document should have highest similarity
     top_doc_idx = results[0][0]
     assert top_doc_idx in (0, 2)
     assert results[0][1] > results[-1][1]
 
 
+def test_bm25_search_ranking():
+    pipeline = TextPipeline()
+    docs = [
+        "Python programming language for software development.",
+        "Statistical methods and probabilistic regression models.",
+        "Advanced Python modules and asynchronous event loops.",
+    ]
+    query = "Python programming"
+    results = pipeline.bm25_search(query, docs)
+    assert len(results) == 3
+    assert results[0][0] in (0, 2)
+
+
+def test_hybrid_search():
+    pipeline = TextPipeline()
+    docs = [
+        "Information retrieval systems and vector space models.",
+        "Cooking gourmet meals with authentic ingredients.",
+        "Search engine ranking algorithms and keyword indices.",
+    ]
+    query = "search information retrieval"
+    results = pipeline.hybrid_search(query, docs)
+    assert len(results) == 3
+    assert results[0][0] in (0, 2)
+
+
 def test_pipeline_boundary_empty_string():
-    from project.src.ai_pipeline import TextPipeline
     pipeline = TextPipeline()
     res = pipeline.process("")
     assert res["tokens"] == []
@@ -85,7 +101,6 @@ def test_pipeline_boundary_empty_string():
 
 
 def test_pipeline_unicode_handling():
-    from project.src.ai_pipeline import TextPipeline
     pipeline = TextPipeline()
     res = pipeline.process("Hello 🌍 世界! Café naïve.")
     assert "hello" in res["tokens"]
@@ -93,7 +108,6 @@ def test_pipeline_unicode_handling():
 
 
 def test_pipeline_batch_processing():
-    from project.src.ai_pipeline import TextPipeline
     pipeline = TextPipeline()
     batch = pipeline.batch_process(["First sentence.", "Second sentence."])
     assert len(batch) == 2
@@ -101,18 +115,23 @@ def test_pipeline_batch_processing():
 
 
 def test_pipeline_levenshtein_distance():
-    from project.src.ai_pipeline import TextPipeline
     pipeline = TextPipeline()
-    if hasattr(pipeline, "levenshtein_distance"):
-        assert pipeline.levenshtein_distance("kitten", "sitting") == 3
-        assert pipeline.levenshtein_distance("same", "same") == 0
+    assert pipeline.levenshtein_distance("kitten", "sitting") == 3
+    assert pipeline.levenshtein_distance("same", "same") == 0
 
 
 def test_pipeline_ngrams_extraction():
-    from project.src.ai_pipeline import TextPipeline
     pipeline = TextPipeline()
-    if hasattr(pipeline, "ngrams"):
-        tokens = ["deep", "learning", "neural", "network"]
-        bigrams = pipeline.ngrams(tokens, 2)
-        assert len(bigrams) == 3
-        assert bigrams[0] == ("deep", "learning")
+    tokens = ["deep", "learning", "neural", "network"]
+    bigrams = pipeline.ngrams(tokens, 2)
+    assert len(bigrams) == 3
+    assert bigrams[0] == ("deep", "learning")
+
+
+def test_pipeline_cache_stats():
+    pipeline = TextPipeline()
+    pipeline.process("Cached test text query.")
+    pipeline.process("Cached test text query.")  # Repeat hits cache
+    stats = pipeline.cache_stats()
+    assert stats["cache_active"] is True
+    assert stats["hits"] >= 1

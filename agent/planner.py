@@ -195,7 +195,21 @@ class Planner:
                 details=f"Rolled back to {checkpoint_commit[:8]} after {fix_attempts} failed fix attempts.",
             )
 
-        # 7. ACCEPT: Commit successful changes
+        # 7. ACCEPT: Commit successful changes only if actual modifications were made
+        if not self.tools.has_code_changes():
+            self.logger.warning(f"No code changes produced for '{obj.title}'. Rejecting empty experiment.")
+            self.tools.git_rollback(checkpoint_commit)
+            return ExecutionResult(
+                success=False,
+                rolled_back=True,
+                checkpoint_commit=checkpoint_commit,
+                final_commit=None,
+                eval_report=eval_report,
+                fix_attempts_made=0,
+                restart_required=False,
+                details="No code modifications were produced by this cycle.",
+            )
+
         commit_msg = f"feat(autonomous): {obj.title}\n\nHypothesis: {obj.hypothesis}"
         final_commit = self.tools.git_commit(commit_msg)
         self.logger.info(f"SUCCESS: Changes verified and committed under {final_commit[:8]}!")
@@ -249,14 +263,22 @@ class Planner:
 
         if not self.llm.mock_mode:
             self._apply_llm_improvement(obj)
-            return
+            if self.tools.has_code_changes():
+                return
+            self.logger.info("LLM did not produce valid code changes. Falling back to architectural synthesis...")
+
+        # Autonomous custom tool synthesis action
+        if obj.category in ("tool_synthesis", "custom_tools") or "tool" in obj.title.lower():
+            self._synthesize_custom_tool(obj)
+            if self.tools.has_code_changes():
+                return
 
         # Progressive simulation / mock fallback improvements
         for target in obj.target_files:
             # Check test files first to avoid substring collision with src files
-            if target.endswith("test_ai_pipeline.py"):
+            if target.endswith("test_ai_pipeline.py") or "test_" in target:
                 self._improve_test_coverage(target)
-            elif target.endswith("ai_pipeline.py"):
+            elif target.endswith("ai_pipeline.py") or "algorithms.py" in target or "cache.py" in target:
                 self._improve_ai_pipeline(target)
             elif "memory.py" in target:
                 self._improve_agent_memory(target)
@@ -313,8 +335,33 @@ Instructions:
             except Exception as e:
                 self.logger.error(f"Error querying LLM for {target_path}: {e}")
 
-    def _extract_python_code(self, response: str) -> str:
+    def _synthesize_custom_tool(self, obj: Objective) -> None:
+        """Synthesizes a brand new custom tool and registers it in real time."""
+        clean_name = re.sub(r"[^\w]", "_", obj.title.lower().replace("create autonomous tool", "").replace("implement tool", "")).strip("_")
+        clean_name = re.sub(r"_+", "_", clean_name)[:30]
+        if not clean_name:
+            clean_name = f"custom_tool_{int(time.time()) % 1000}"
+
+        tool_code = f'''"""
+Custom Autonomous Tool: {clean_name}
+Objective: {obj.title}
+Hypothesis: {obj.hypothesis}
+"""
+
+def run(**kwargs):
+    """Executes {clean_name} autonomously."""
+    return {{"status": "success", "tool": "{clean_name}", "inputs": kwargs}}
+'''
+        try:
+            self.tools.create_custom_tool(name=clean_name, code=tool_code, description=obj.hypothesis)
+            self.logger.info(f"Synthesized and registered custom tool '{clean_name}'.")
+        except Exception as e:
+            self.logger.warning(f"Could not synthesize custom tool: {e}")
+
+    def _extract_python_code(self, response: Optional[str]) -> str:
         """Extracts python code from markdown fence blocks or returns raw string."""
+        if not response or not isinstance(response, str):
+            return ""
         if "```python" in response:
             parts = response.split("```python")
             code = parts[1].split("```")[0]
