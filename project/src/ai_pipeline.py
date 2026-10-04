@@ -1,3 +1,4 @@
+import functools
 """
 AI Text Processing & Semantic Retrieval Pipeline.
 Production-grade modular search, feature engineering, and lexical analytics.

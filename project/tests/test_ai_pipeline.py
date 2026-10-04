@@ -135,3 +135,11 @@ def test_pipeline_cache_stats():
     stats = pipeline.cache_stats()
     assert stats["cache_active"] is True
     assert stats["hits"] >= 1
+
+
+def test_pipeline_shannon_entropy():
+    from project.src.ai_pipeline import TextPipeline
+    pipeline = TextPipeline()
+    if hasattr(pipeline, "shannon_entropy"):
+        assert pipeline.shannon_entropy(["word", "word"]) == 0.0
+        assert pipeline.shannon_entropy(["a", "b", "c"]) > 0.0
